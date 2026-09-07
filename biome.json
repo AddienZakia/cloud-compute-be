@@ -1,0 +1,58 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 80
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/pnpm-lock.yaml",
+      "!!**/commitlint.config.js",
+      "!src/constants/**/*.html"
+    ]
+  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": false
+    },
+    "includes": [
+      "**",
+      "!**/.lintstagedrc.cjs",
+      "!**/tailwind.config.js",
+      "!**/.prettierrc.js"
+    ]
+  },
+  "javascript": {
+    "formatter": {
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false,
+      "quoteStyle": "double"
+    },
+
+    "globals": ["React", "JSX"]
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useConst": "error"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auth Email</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f8fafc;
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        color: #1f2933;
+      }
+
+      .wrapper {
+        width: 100%;
+        padding: 40px 16px;
+      }
+
+      .container {
+        max-width: 520px;
+        background: #ffffff;
+        margin: auto;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      }
+
+      .header {
+        background: #932162;
+        padding: 26px;
+        color: #fff;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      .content {
+        padding: 28px;
+        line-height: 1.7;
+        font-size: 15px;
+      }
+
+      .btn {
+        display: block;
+        background: #932162;
+        color: #fff !important;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        border-radius: 10px;
+        text-align: center;
+        padding: 14px 0;
+      }
+      .footer {
+        text-align: center;
+        font-size: 12px;
+        padding: 18px;
+        color: #6b7280;
+        background: #f8fafc;
+      }
+
+      .divider {
+        height: 1px;
+        background: #e5e7eb;
+        margin: 28px 0;
+      }
+
+      .code-box {
+        background: #f8fafc;
+        border: 1px dashed #932162;
+        padding: 16px;
+        border-radius: 8px;
+        font-size: 20px;
+        letter-spacing: 4px;
+        font-weight: bold;
+        color: #932162;
+        text-align: center;
+        margin-top: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="container">
+        <div class="header">{{title}}</div>
+
+        <div class="content">
+          <p>Hello <strong>{{name}}</strong>,</p>
+
+          <!-- ================= VERIFY EMAIL ================= -->
+          <div id="verify-email">
+            <p>
+              Thank you for creating an account. Please verify your email
+              address to activate your account.
+            </p>
+
+            <table
+              width="100%"
+              cellpadding="0"
+              cellspacing="0"
+              role="presentation"
+            >
+              <tr>
+                <td align="center">
+                  <a href="{{link}}" class="btn">Verify Email</a>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="footer">© 2026 Your Company. All rights reserved.</div>
+      </div>
+    </div>
+  </body>
+</html>
