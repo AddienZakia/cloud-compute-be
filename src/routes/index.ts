@@ -2,6 +2,7 @@ import { Router } from "express";
 import { healthController } from "../controllers/health.controller";
 import { authenticate } from "../middlewares/authenticate.middleware";
 import authRouter from "./auth.route";
+import uploadRouter from "./upload.route";
 import usersRouter from "./users.route";
 
 const router = Router();
@@ -11,6 +12,9 @@ router.get("/health", healthController);
 
 // Auth routes (public)
 router.use("/auth", authRouter);
+
+// Upload routes (Azure Blob Storage)
+router.use("/upload", uploadRouter);
 
 // User routes (protected with JWT authentication)
 router.use("/users", authenticate, usersRouter);

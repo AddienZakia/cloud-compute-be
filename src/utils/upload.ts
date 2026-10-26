@@ -15,3 +15,6 @@ export const formToObject = <T extends string>(
 export async function cleanupFiles(files: Express.Multer.File[]) {
   await Promise.all(files.map((f) => fs.unlink(f.path).catch(() => {})));
 }
+
+// Re-export Azure Blob Storage helpers
+export * from "./azure-storage";
