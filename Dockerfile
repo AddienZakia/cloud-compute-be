@@ -13,6 +13,12 @@ COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
+# Konfigurasi registry & timeout agar tidak timeout saat download
+RUN echo "network-timeout=300000" >> /app/.npmrc && \
+    echo "fetch-retries=5" >> /app/.npmrc && \
+    echo "fetch-retry-mintimeout=20000" >> /app/.npmrc && \
+    echo "fetch-retry-maxtimeout=120000" >> /app/.npmrc
+
 # Install all dependencies (termasuk devDependencies untuk build)
 RUN pnpm install --frozen-lockfile
 

@@ -46,12 +46,22 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
+          command_timeout: 30m
           script: |
             set -e
             git config --global --add safe.directory /var/www/cloud-be
             cd /var/www/cloud-be
             git pull origin main
-            docker compose up -d --build
+
+            # Build image ONCE — semua service pakai image yang sama
+            docker build -t cloud-be-app:latest .
+
+            # Jalankan semua container tanpa rebuild (image sudah ada)
+            docker compose up -d --no-build
+
+            # Jalankan migrasi Prisma
             docker compose exec -T api-service pnpm run db:push || true
+
+            # Hapus image lama yang tidak terpakai
             docker image prune -f
 
