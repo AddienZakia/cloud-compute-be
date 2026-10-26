@@ -49,20 +49,9 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
-
+            set -e
             cd /var/www/cloud-be
             git pull origin main
-
-            docker build -t cloud-be .
-            docker stop cloud-be || true
-            docker rm cloud-be || true
-
-            docker run -d \
-              --name cloud-be \
-              --restart unless-stopped \
-              -p 3000:3000 \
-              --env-file .env \
-              cloud-be
-
-            docker exec cloud-be pnpm db:push || true
+            docker compose up -d --build
+            docker compose exec app pnpm db:push || true
             docker image prune -f
