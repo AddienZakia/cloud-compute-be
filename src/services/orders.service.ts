@@ -1,5 +1,7 @@
 import { Request } from "express";
 import { z } from "zod";
+import { publishEvent } from "../kafka/kafka.client";
+import { KAFKA_TOPICS, OrderCreatedEvent } from "../kafka/topics";
 import { CatalogsRepo } from "../repositories/catalogs.repositories";
 import { DriversRepo } from "../repositories/drivers.repositories";
 import { MerchantsRepo } from "../repositories/merchants.repositories";
@@ -8,6 +10,7 @@ import { ApiError } from "../utils/error-handler";
 import { PaginatedResponse } from "../utils/pagination";
 import prisma from "../utils/prisma";
 import { successResponse } from "../utils/success-response";
+
 import {
   createOrderSchema,
   updateOrderSchema,
@@ -126,53 +129,81 @@ export const createOrderService = async (req: Request) => {
     };
   });
 
-  // 4. Assign driver: either requested driver or random available driver
-  let assignedDriverId: string | null = requestedDriverId || null;
-  if (!assignedDriverId) {
-    const availableDrivers = await DriversRepo.findMany({
-      where: { isAvailable: true },
-      take: 10,
-    });
-    if (availableDrivers.length > 0) {
-      const randomIndex = Math.floor(Math.random() * availableDrivers.length);
-      assignedDriverId = availableDrivers[randomIndex].id;
-    }
-  }
-
-  // 5. Create Order, OrderItems, Transaction in a database transaction
-  const newOrder = await prisma.$transaction(async (tx) => {
-    const order = await tx.order.create({
-      data: {
-        userId,
-        merchantId,
-        driverId: assignedDriverId,
-        deliveryAddress,
-        status: "waiting",
-        orderItems: {
-          create: orderItemsData,
-        },
-        transaction: {
-          create: {
-            status: "pending",
-            grossAmount,
-          },
-        },
+  // 4. Create Order and OrderItems in database
+  const newOrder = await prisma.order.create({
+    data: {
+      userId,
+      merchantId,
+      driverId: requestedDriverId || null,
+      deliveryAddress,
+      status: "waiting",
+      orderItems: {
+        create: orderItemsData,
       },
-      include: orderIncludes,
-    });
-
-    // If driver assigned, update driver availability
-    if (assignedDriverId) {
-      await tx.driver.update({
-        where: { id: assignedDriverId },
-        data: { isAvailable: false },
-      });
-    }
-
-    return order;
+    },
+    include: orderIncludes,
   });
 
-  return successResponse(201, "Successfully created order", newOrder);
+  // 5. Publish 'order-created' Event to Kafka Microservices Backbone
+  const orderCreatedEvent: OrderCreatedEvent = {
+    orderId: newOrder.id,
+    userId: newOrder.userId,
+    merchantId: newOrder.merchantId,
+    deliveryAddress: newOrder.deliveryAddress,
+    requestedDriverId,
+    grossAmount,
+    items: orderItemsData,
+    createdAt: newOrder.createdAt.toISOString(),
+  };
+
+  const isPublished = await publishEvent(
+    KAFKA_TOPICS.ORDER_CREATED,
+    orderCreatedEvent,
+    newOrder.id,
+  );
+
+  // Fallback: jika Kafka sedang offline/tidak aktif di dev lokal,
+  // jalankan assign driver & payment secara synchronous agar API tetap berfungsi
+  if (!isPublished) {
+    let fallbackDriverId: string | null = requestedDriverId || null;
+    if (!fallbackDriverId) {
+      const availableDrivers = await DriversRepo.findMany({
+        where: { isAvailable: true },
+        take: 10,
+      });
+      if (availableDrivers.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableDrivers.length);
+        fallbackDriverId = availableDrivers[randomIndex].id;
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (fallbackDriverId) {
+        await tx.order.update({
+          where: { id: newOrder.id },
+          data: { driverId: fallbackDriverId },
+        });
+        await tx.driver.update({
+          where: { id: fallbackDriverId },
+          data: { isAvailable: false },
+        });
+      }
+
+      await tx.transaction.create({
+        data: {
+          orderId: newOrder.id,
+          grossAmount,
+          status: "pending",
+        },
+      });
+    });
+  }
+
+  return successResponse(
+    201,
+    "Successfully created order and published to event stream",
+    newOrder,
+  );
 };
 
 export const getAllOrdersService = async (

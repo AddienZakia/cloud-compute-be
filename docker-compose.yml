@@ -1,8 +1,10 @@
 services:
-  # PostgreSQL Database
+  # -------------------------------------------------------------
+  # Shared PostgreSQL Database
+  # -------------------------------------------------------------
   db:
     image: postgres:16-alpine
-    container_name: cloud-be-db
+    container_name: cloud-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -18,24 +20,128 @@ services:
       timeout: 5s
       retries: 5
 
-  # Express.js Backend
-  app:
-    container_name: cloud-be
+  # -------------------------------------------------------------
+  # Apache Kafka (Single Server in KRaft Mode - Event Bus)
+  # -------------------------------------------------------------
+  kafka:
+    image: apache/kafka:latest
+    container_name: cloud-kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  # -------------------------------------------------------------
+  # Microservice 1: API Gateway & Order Service (HTTP Server + Kafka Producer)
+  # -------------------------------------------------------------
+  api-service:
+    container_name: cloud-api-service
     build:
       context: .
       dockerfile: Dockerfile
+    command: ["node", "dist/index.js"]
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
     env_file:
       - .env
     environment:
-      # Override DATABASE_URL agar mengarah ke service 'db' di Docker network
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-backend_db}?schema=public
+      KAFKA_BROKER: kafka:9092
+      KAFKA_RUN_EMBEDDED_WORKERS: "false"
     depends_on:
       db:
         condition: service_healthy
+      kafka:
+        condition: service_started
+
+  # -------------------------------------------------------------
+  # Microservice 2: Driver Microservice (Kafka Consumer Worker)
+  # -------------------------------------------------------------
+  driver-service:
+    container_name: cloud-driver-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["node", "dist/workers/driver.worker.js"]
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-backend_db}?schema=public
+      KAFKA_BROKER: kafka:9092
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
+  # -------------------------------------------------------------
+  # Microservice 3: Payment Microservice (Kafka Consumer Worker)
+  # -------------------------------------------------------------
+  payment-service:
+    container_name: cloud-payment-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["node", "dist/workers/payment.worker.js"]
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-backend_db}?schema=public
+      KAFKA_BROKER: kafka:9092
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
+  # -------------------------------------------------------------
+  # Microservice 4: Notification Microservice (Kafka Consumer Worker)
+  # -------------------------------------------------------------
+  notification-service:
+    container_name: cloud-notification-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["node", "dist/workers/notification.worker.js"]
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-backend_db}?schema=public
+      KAFKA_BROKER: kafka:9092
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
 
 volumes:
   postgres_data:
+    driver: local
+  kafka_data:
     driver: local

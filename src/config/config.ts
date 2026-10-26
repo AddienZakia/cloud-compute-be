@@ -14,4 +14,11 @@ export const config = {
   AZURE_STORAGE_ACCOUNT_KEY: process.env.AZURE_STORAGE_ACCOUNT_KEY || "",
   AZURE_STORAGE_CONTAINER_NAME:
     process.env.AZURE_STORAGE_CONTAINER_NAME || "cloud-items",
+
+  // KAFKA CONFIG
+  KAFKA_BROKER: process.env.KAFKA_BROKER || "localhost:9092",
+  KAFKA_CLIENT_ID: process.env.KAFKA_CLIENT_ID || "cloud-be",
+  KAFKA_GROUP_ID: process.env.KAFKA_GROUP_ID || "cloud-be-group",
+  KAFKA_ENABLED: process.env.KAFKA_ENABLED !== "false",
+  KAFKA_RUN_EMBEDDED_WORKERS: process.env.KAFKA_RUN_EMBEDDED_WORKERS === "true",
 };

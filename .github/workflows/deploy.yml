@@ -52,5 +52,6 @@ jobs:
             cd /var/www/cloud-be
             git pull origin main
             docker compose up -d --build
-            docker compose exec app pnpm db:push || true
+            docker compose exec -T api-service pnpm run db:push || true
             docker image prune -f
+
