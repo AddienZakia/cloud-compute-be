@@ -1,33 +1,19 @@
 import bcrypt from "bcrypt";
-import crypto from "crypto";
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { config } from "../config/config";
 import { JWTPayload } from "../constants/jwt";
-import { forgotPasswordResponseDTO } from "../dto/response/auth/forgot-password.response.dto";
 import { loginResponseDTO } from "../dto/response/auth/login.response.dto";
 import { registerResponseDTO } from "../dto/response/auth/register.response.dto";
-import { resetPassworrdResponseDTO } from "../dto/response/auth/reset-password.response.dto";
-import { sendVerifyResponseDTO } from "../dto/response/auth/send-verify.response.dto";
-import { verifyEmailResponseDTO } from "../dto/response/auth/verify-email.response.dto";
+import { DriversRepo } from "../repositories/drivers.repositories";
+import { MerchantsRepo } from "../repositories/merchants.repositories";
 import { UsersRepo } from "../repositories/users.repositories";
-import { sendEmailType } from "../types/send-email";
 import { ApiError } from "../utils/error-handler";
-import { sendEmail } from "../utils/send-email";
 import { successResponse } from "../utils/success-response";
-import {
-  forgotPasswordSchema,
-  loginSchema,
-  registerSchema,
-  resetPasswordSchema,
-  sendVerifySchema,
-  verifyEmailSchema,
-} from "../validations/auth.schema";
+import { loginSchema, registerSchema } from "../validations/auth.schema";
 
-const COOLDOWN_VERIFY = config.COOLDOWN_VERIFY * 60 * 1000;
-const COOLDOWN_RESET = config.COOLDOWN_RESET * 60 * 1000;
-const COOLDOWN_JWT = config.COOLDOWN_JWT * 60 * 1000;
+const COOLDOWN_JWT = config.COOLDOWN_JWT * 60; // in seconds for jsonwebtoken expiresIn
 
 export const registerService = async (
   req: Request,
@@ -49,90 +35,27 @@ export const registerService = async (
     );
   }
 
-  const user = await UsersRepo.findOne({
+  const existingUser = await UsersRepo.findUnique({
     where: {
       email: data.email,
     },
   });
 
-  if (user) {
-    if (user.isVerified) {
-      throw new ApiError(409, "Email already registered");
-    }
-
-    if (!user.isVerified) {
-      if (
-        user.lastSendVerify &&
-        Date.now() - user.lastSendVerify.getTime() > COOLDOWN_VERIFY
-      ) {
-        const token = crypto.randomBytes(32).toString("hex");
-        const hashToken = crypto
-          .createHmac(
-            "sha256",
-            process.env.TOKEN_SECRET || "default_token_secret",
-          )
-          .update(token)
-          .digest("hex");
-        const expiredDate = new Date(Date.now() + COOLDOWN_VERIFY);
-
-        await UsersRepo.update({
-          data: {
-            verifyToken: hashToken,
-            verifyTokenExpires: expiredDate,
-            lastSendVerify: new Date(),
-          },
-          where: {
-            id: user.id,
-          },
-        });
-
-        const registerData: sendEmailType = {
-          type: "verify",
-          title: "Verify your Email",
-          name: data.name,
-          link: `${config.BASE_URL}/auth/verify-email?token=${token}`,
-        };
-
-        sendEmail(data.email, "Verify your email", registerData);
-      }
-
-      throw new ApiError(409, "Email isn't verified. Please check your email");
-    }
+  if (existingUser) {
+    throw new ApiError(409, "Email already registered");
   }
 
   const hashPassword = await bcrypt.hash(data.password, 10);
 
-  if (!user) {
-    const token = crypto.randomBytes(32).toString("hex");
-    const hashToken = crypto
-      .createHmac("sha256", process.env.TOKEN_SECRET || "default_token_secret")
-      .update(token)
-      .digest("hex");
-    const expiredDate = new Date(Date.now() + COOLDOWN_VERIFY);
-
-    await UsersRepo.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        password: hashPassword,
-        role: "USER",
-        isVerified: false,
-        verifyToken: hashToken,
-        verifyTokenExpires: expiredDate,
-        lastSendVerify: new Date(),
-        phoneNumber: "",
-      },
-    });
-
-    const registerData: sendEmailType = {
-      type: "verify",
-      title: "Verify your Email",
+  await UsersRepo.create({
+    data: {
       name: data.name,
-      link: `${config.BASE_URL}/auth/verify-email?token=${token}`,
-    };
-
-    sendEmail(data.email, "Verify your email", registerData);
-  }
+      email: data.email,
+      password: hashPassword,
+      role: "USER",
+      phoneNumber: data.phoneNumber || "",
+    },
+  });
 
   const response: registerResponseDTO = successResponse(
     201,
@@ -161,23 +84,20 @@ export const loginService = async (
     );
   }
 
-  const user = await UsersRepo.findOne({
+  const user = await UsersRepo.findUnique({
     where: {
       email: data.email,
     },
   });
 
-  if (!user) throw new ApiError(404, "User not found");
-
-  if (user && !user.isVerified) {
-    throw new ApiError(403, "Please verify your email before continue");
+  if (!user) {
+    throw new ApiError(401, "Invalid email or password.");
   }
 
-  const validatePassword = await bcrypt.compareSync(
-    data.password,
-    user.password,
-  );
-  if (!validatePassword) throw new ApiError(401, "Invalid email or password.");
+  const validatePassword = await bcrypt.compare(data.password, user.password);
+  if (!validatePassword) {
+    throw new ApiError(401, "Invalid email or password.");
+  }
 
   const jwtData: JWTPayload = {
     id: user.id,
@@ -203,259 +123,127 @@ export const loginService = async (
   return response;
 };
 
-export const forgotPasswordService = async (
+export const loginDriverService = async (
   req: Request,
   _res: Response,
   _next: NextFunction,
-): Promise<forgotPasswordResponseDTO> => {
+): Promise<loginResponseDTO> => {
   if (!req.body) {
     throw new ApiError(400, "Request body can't be empty");
   }
 
   const data = req.body;
-  const validate = forgotPasswordSchema.safeParse(data);
+  const validate = loginSchema.safeParse(data);
 
   if (!validate.success) {
     throw new ApiError(
       400,
-      "Validation error",
+      "Validations Error",
       z.flattenError(validate.error).fieldErrors,
     );
   }
 
-  const user = await UsersRepo.findOne({
+  const driver = await DriversRepo.findUnique({
     where: {
       email: data.email,
     },
   });
 
-  if (!user) throw new ApiError(404, "User not found");
-
-  if (user && !user.isVerified) {
-    throw new ApiError(403, "Please verify your email before continue");
+  if (!driver) {
+    throw new ApiError(401, "Invalid email or password.");
   }
 
-  if (
-    user &&
-    user.lastSendReset &&
-    Date.now() - user.lastSendReset.getTime() < COOLDOWN_RESET
-  ) {
-    throw new ApiError(
-      429,
-      "Too many requests, please wait 10 minutes before requesting again",
-    );
+  const validatePassword = await bcrypt.compare(data.password, driver.password);
+  if (!validatePassword) {
+    throw new ApiError(401, "Invalid email or password.");
   }
 
-  const token = crypto.randomBytes(32).toString("hex");
-  const hashToken = crypto
-    .createHmac("sha256", process.env.TOKEN_SECRET || "default_token_secret")
-    .update(token)
-    .digest("hex");
-  const expiredDate = new Date(Date.now() + COOLDOWN_RESET);
-
-  await UsersRepo.update({
-    data: {
-      resetToken: hashToken,
-      resetTokenExpires: expiredDate,
-      lastSendReset: new Date(),
-    },
-    where: {
-      id: user.id,
-    },
-  });
-
-  const resetData: sendEmailType = {
-    type: "verify",
-    title: "Reset your Password",
-    name: user.name,
-    link: `${config.BASE_URL}/auth/reset-password?token=${token}`,
+  const jwtData: JWTPayload = {
+    id: driver.id,
+    email: driver.email,
+    role: "DRIVER",
   };
 
-  sendEmail(data.email, "Recover your account", resetData);
-
-  const response: forgotPasswordResponseDTO = successResponse(
-    200,
-    "Reset password link has been sent",
+  const token = jwt.sign(
+    jwtData,
+    process.env.JWT_SECRET || "default_jwt_secret",
+    {
+      expiresIn: COOLDOWN_JWT,
+    },
   );
-  return response;
-};
 
-export const resetPasswordService = async (
-  req: Request,
-  _res: Response,
-  _next: NextFunction,
-): Promise<resetPassworrdResponseDTO> => {
-  if (!req.body) {
-    throw new ApiError(400, "Request body can't be empty");
-  }
-
-  const data = req.body;
-  const validate = resetPasswordSchema.safeParse(data);
-
-  if (!validate.success) {
-    throw new ApiError(
-      400,
-      "Validations error",
-      z.flattenError(validate.error).fieldErrors,
-    );
-  }
-
-  const hashToken = crypto
-    .createHmac("sha256", process.env.TOKEN_SECRET || "default_token_secret")
-    .update(data.token)
-    .digest("hex");
-
-  const user = await UsersRepo.findOne({
-    where: {
-      resetToken: hashToken,
-      resetTokenExpires: {
-        gt: new Date(),
-      },
-    },
-  });
-
-  if (!user) throw new ApiError(400, "Invalid or expired reset token");
-
-  const hashPassword = bcrypt.hashSync(data.password, 10);
-
-  await UsersRepo.update({
-    data: {
-      password: hashPassword,
-      resetToken: null,
-      resetTokenExpires: null,
-      lastSendReset: null,
-    },
-    where: {
-      id: user.id,
-      isVerified: true,
-    },
-  });
-
-  const response: resetPassworrdResponseDTO = successResponse(
+  const resultData = { token, role: "DRIVER" };
+  const response: loginResponseDTO = successResponse(
     200,
-    "Your password has been reset successfully",
+    "Driver login successful",
+    resultData,
   );
 
   return response;
 };
 
-export const verifyEmailService = async (
+export const loginMerchantService = async (
   req: Request,
   _res: Response,
   _next: NextFunction,
-): Promise<verifyEmailResponseDTO> => {
+): Promise<loginResponseDTO> => {
   if (!req.body) {
     throw new ApiError(400, "Request body can't be empty");
   }
 
   const data = req.body;
-  const validate = verifyEmailSchema.safeParse(data);
+  const validate = loginSchema.safeParse(data);
 
   if (!validate.success) {
     throw new ApiError(
       400,
-      "Validations error",
+      "Validations Error",
       z.flattenError(validate.error).fieldErrors,
     );
   }
 
-  const hashToken = crypto
-    .createHmac("sha256", process.env.TOKEN_SECRET || "default_token_secret")
-    .update(data.token)
-    .digest("hex");
-
-  const user = await UsersRepo.findOne({
-    where: {
-      isVerified: false,
-      verifyToken: hashToken,
-      verifyTokenExpires: {
-        gt: new Date(),
-      },
-    },
-  });
-
-  if (!user) throw new ApiError(400, "Invalid or expired verify token");
-
-  await UsersRepo.update({
-    data: {
-      isVerified: true,
-      verifyToken: null,
-      verifyTokenExpires: null,
-      lastSendVerify: null,
-    },
-    where: {
-      id: user.id,
-    },
-  });
-
-  const response: verifyEmailResponseDTO = successResponse(
-    200,
-    "Email successfully verified",
-  );
-
-  return response;
-};
-
-export const sendVerifyTokenService = async (
-  req: Request,
-  _res: Response,
-  _next: NextFunction,
-): Promise<sendVerifyResponseDTO> => {
-  if (!req.body) {
-    throw new ApiError(400, "Request body can't be empty");
-  }
-
-  const data = req.body;
-  const validate = sendVerifySchema.safeParse(data);
-
-  if (!validate.success) {
-    throw new ApiError(
-      400,
-      "Validations error",
-      z.flattenError(validate.error).fieldErrors,
-    );
-  }
-
-  const user = await UsersRepo.findOne({
+  const merchant = await MerchantsRepo.findUnique({
     where: {
       email: data.email,
     },
   });
 
-  if (!user) throw new ApiError(404, "User not found");
+  if (!merchant) {
+    throw new ApiError(401, "Invalid email or password.");
+  }
 
-  if (user && user.isVerified) throw new ApiError(409, "User already verified");
+  if (!merchant.status) {
+    throw new ApiError(403, "Merchant account is inactive or suspended");
+  }
 
-  const token = crypto.randomBytes(32).toString("hex");
-  const hashToken = crypto
-    .createHmac("sha256", process.env.TOKEN_SECRET || "default_token_secret")
-    .update(token)
-    .digest("hex");
-  const expiredDate = new Date(Date.now() + COOLDOWN_VERIFY);
+  const validatePassword = await bcrypt.compare(
+    data.password,
+    merchant.password,
+  );
+  if (!validatePassword) {
+    throw new ApiError(401, "Invalid email or password.");
+  }
 
-  await UsersRepo.update({
-    data: {
-      verifyToken: hashToken,
-      verifyTokenExpires: expiredDate,
-      lastSendVerify: new Date(),
-    },
-    where: {
-      id: user.id,
-    },
-  });
-
-  const registerData: sendEmailType = {
-    type: "verify",
-    title: "Verify your Email",
-    name: user.name,
-    link: `${config.BASE_URL}/auth/verify-email?token=${token}`,
+  const jwtData: JWTPayload = {
+    id: merchant.id,
+    email: merchant.email,
+    role: "MERCHANT",
   };
 
-  sendEmail(data.email, "Verify your email", registerData);
-
-  const response: sendVerifyResponseDTO = successResponse(
-    200,
-    "A verification link has been sent",
+  const token = jwt.sign(
+    jwtData,
+    process.env.JWT_SECRET || "default_jwt_secret",
+    {
+      expiresIn: COOLDOWN_JWT,
+    },
   );
+
+  const resultData = { token, role: "MERCHANT" };
+  const response: loginResponseDTO = successResponse(
+    200,
+    "Merchant login successful",
+    resultData,
+  );
+
   return response;
 };

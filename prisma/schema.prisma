@@ -14,21 +14,14 @@ enum Role {
 }
 
 model Users {
-  id                 String    @id @default(uuid())
-  email              String    @unique
-  password           String
-  name               String
-  role               Role      @default(USER)
-  phoneNumber        String?   @map("phone_number")
-  isVerified         Boolean   @default(false) @map("is_verified")
-  verifyToken        String?   @map("verify_token")
-  verifyTokenExpires DateTime? @map("verify_token_expires")
-  lastSendVerify     DateTime? @map("last_send_verify")
-  resetToken         String?   @map("reset_token")
-  resetTokenExpires  DateTime? @map("reset_token_expires")
-  lastSendReset      DateTime? @map("last_send_request")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String
+  name        String
+  role        Role     @default(USER)
+  phoneNumber String?  @map("phone_number")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   orders Order[]
 

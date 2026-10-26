@@ -1,11 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import {
-  forgotPasswordService,
+  loginDriverService,
+  loginMerchantService,
   loginService,
   registerService,
-  resetPasswordService,
-  sendVerifyTokenService,
-  verifyEmailService,
 } from "../services/auth.service";
 
 export const registerController = async (
@@ -28,59 +26,33 @@ export const loginController = async (
 ) => {
   try {
     const result = await loginService(req, res, next);
-    res.status(200).send(result);
+    return res.status(200).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-export const forgotPasswordController = async (
+export const loginDriverController = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const result = await forgotPasswordService(req, res, next);
-    res.status(200).send(result);
+    const result = await loginDriverService(req, res, next);
+    return res.status(200).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-export const resetPasswordController = async (
+export const loginMerchantController = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const result = await resetPasswordService(req, res, next);
-    res.status(200).send(result);
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const verifyEmailController = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const result = await verifyEmailService(req, res, next);
-    res.status(200).send(result);
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const sendVerifyTokenController = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const result = await sendVerifyTokenService(req, res, next);
-    res.status(200).send(result);
+    const result = await loginMerchantService(req, res, next);
+    return res.status(200).json(result);
   } catch (err) {
     next(err);
   }
