@@ -48,6 +48,7 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             set -e
+            git config --global --add safe.directory /var/www/cloud-be
             cd /var/www/cloud-be
             git pull origin main
             docker compose up -d --build
