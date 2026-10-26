@@ -23,7 +23,7 @@ COPY tsconfig.json ./
 COPY src ./src
 COPY public ./public
 
-RUN pnpm run Build
+RUN pnpm run build
 
 FROM node:22-alpine AS runner
 
@@ -42,7 +42,8 @@ COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
 # Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile
+# HUSKY=0 mencegah lifecycle 'prepare' menjalankan husky (devDependency) saat pnpm install --prod
+RUN HUSKY=0 pnpm install --prod --frozen-lockfile
 
 # Generate Prisma Client for production runtime
 RUN pnpm run db:gen
