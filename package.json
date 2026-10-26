@@ -1,6 +1,5 @@
 {
   "name": "backend-template",
-  "type": "module",
   "version": "1.0.0",
   "description": "Clean, scalable TypeScript Express & Prisma backend boilerplate template",
   "main": "dist/index.js",

@@ -30,5 +30,107 @@ model Users {
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
+  orders Order[]
+
   @@map("users")
+}
+
+// Model Driver
+// Asumsi ketika order maka cari driver random yang masih avail
+// Note: nanti diseeder kalau drivernya lebih banyak
+model Driver {
+  id          String   @id @default(uuid())
+  name        String
+  email       String   @unique
+  password    String
+  isAvailable Boolean  @default(true) @map("is_available")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  orders Order[]
+
+  @@map("drivers")
+}
+
+model Merchant {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  title     String
+  rating    Int      @default(0)
+  address   String
+  status    Boolean  @default(true)
+  imageUrl  String?  @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  catalogs Catalog[]
+  orders   Order[]
+
+  @@map("merchants")
+}
+
+model Catalog {
+  id         String   @id @default(uuid())
+  merchantId String   @map("id_merchant")
+  title      String
+  price      Int
+  status     Boolean  @default(true)
+  category   String
+  imageUrl   String?  @map("image_url")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  merchant   Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  orderItems OrderItems[]
+
+  @@map("catalogs")
+}
+
+model Order {
+  id              String   @id @default(uuid())
+  userId          String   @map("id_user")
+  driverId        String?  @map("id_driver")
+  merchantId      String   @map("id_merchant")
+  status          String   @default("waiting") // delivered, picked, waiting
+  deliveryAddress String   @map("delivery_address")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user        Users        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  driver      Driver?      @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  merchant    Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  orderItems  OrderItems[]
+  transaction Transaction?
+
+  @@map("orders")
+}
+
+model OrderItems {
+  id            String   @id @default(uuid())
+  orderId       String   @map("id_order")
+  catalogId     String   @map("id_catalog")
+  quantity      Int
+  priceSnapshot Int      @map("price_snapshot")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  catalog Catalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model Transaction {
+  id          String    @id @default(uuid())
+  orderId     String    @unique @map("id_order")
+  status      String    @default("pending") // pending, failed, success
+  grossAmount Int       @map("gross_amount")
+  paidAt      DateTime? @map("paid_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
 }

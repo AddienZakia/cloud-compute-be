@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import nodemailer from "nodemailer";
+import path from "path";
 import { sendEmailType } from "../types/send-email";
 import { logger } from "./logger";
 
@@ -22,8 +23,8 @@ export const sendEmail = async (
     data.type === "reset"
       ? "reset-mail-template.html"
       : "verify-mail-template.html";
-  const dataFile = await readFileSync(
-    process.cwd() + `\\src\\constants\\${file}`,
+  const dataFile = readFileSync(
+    path.join(process.cwd(), "src", "constants", file),
     {
       encoding: "utf-8",
     },

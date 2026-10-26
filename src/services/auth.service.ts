@@ -67,7 +67,10 @@ export const registerService = async (
       ) {
         const token = crypto.randomBytes(32).toString("hex");
         const hashToken = crypto
-          .createHmac("sha256", process.env.TOKEN_SECRET || "default_token_secret")
+          .createHmac(
+            "sha256",
+            process.env.TOKEN_SECRET || "default_token_secret",
+          )
           .update(token)
           .digest("hex");
         const expiredDate = new Date(Date.now() + COOLDOWN_VERIFY);
@@ -182,9 +185,13 @@ export const loginService = async (
     role: user.role,
   };
 
-  const token = jwt.sign(jwtData, process.env.JWT_SECRET || "default_jwt_secret", {
-    expiresIn: COOLDOWN_JWT,
-  });
+  const token = jwt.sign(
+    jwtData,
+    process.env.JWT_SECRET || "default_jwt_secret",
+    {
+      expiresIn: COOLDOWN_JWT,
+    },
+  );
 
   const resultData = { token, role: user.role };
   const response: loginResponseDTO = successResponse(

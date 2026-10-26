@@ -113,7 +113,11 @@ export const editUserService = async (req: Request) => {
     updatedAt: updatedUser.updatedAt,
   };
 
-  return successResponse(200, "Successfully updated user profile", responseData);
+  return successResponse(
+    200,
+    "Successfully updated user profile",
+    responseData,
+  );
 };
 
 export const getSpecificUserService = async (userId: string) => {
@@ -136,7 +140,9 @@ export const getSpecificUserService = async (userId: string) => {
   return successResponse(200, "Success retrieve user data", user);
 };
 
-export const getAllUsersService = async (paginationQuery: paginationQueryDTO) => {
+export const getAllUsersService = async (
+  paginationQuery: paginationQueryDTO,
+) => {
   const validatePagination = paginationSchema.safeParse(paginationQuery);
 
   if (!validatePagination.success) {
