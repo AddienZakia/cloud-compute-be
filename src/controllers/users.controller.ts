@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import {
+  createUserService,
   deleteUserService,
   editUserService,
   getAllUsersService,
@@ -16,9 +17,22 @@ export const getMeController = async (
 ) => {
   try {
     const { response } = await getMeService(req.user!);
-    res.status(200).json(response);
+    return res.status(200).json(response);
   } catch (error) {
     next(error);
+  }
+};
+
+export const createUserController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const response = await createUserService(req);
+    return res.status(201).json(response);
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -29,7 +43,7 @@ export const editUserController = async (
 ) => {
   try {
     const response = await editUserService(req);
-    res.status(200).json(response);
+    return res.status(200).json(response);
   } catch (err) {
     next(err);
   }
@@ -43,7 +57,7 @@ export const getSpecificUserController = async (
   try {
     const params = getIdParamsSchema.parse(req.params);
     const response = await getSpecificUserService(params.id);
-    res.status(200).json(response);
+    return res.status(200).json(response);
   } catch (err) {
     next(err);
   }
@@ -57,7 +71,7 @@ export const getAllUsersController = async (
   try {
     const pagination = paginationSchema.parse(req.query);
     const response = await getAllUsersService(pagination);
-    res.status(200).json(response);
+    return res.status(200).json(response);
   } catch (err) {
     next(err);
   }
@@ -71,7 +85,7 @@ export const deleteUserController = async (
   try {
     const params = getIdParamsSchema.parse(req.params);
     const response = await deleteUserService(params.id);
-    res.status(200).json(response);
+    return res.status(200).json(response);
   } catch (err) {
     next(err);
   }
