@@ -7,6 +7,7 @@ import driversRouter from "./drivers.route";
 import merchantsRouter from "./merchants.route";
 import ordersRouter from "./orders.route";
 import transactionsRouter from "./transactions.route";
+import uploadRouter from "./upload.route";
 import usersRouter from "./users.route";
 
 const router = Router();
@@ -18,6 +19,10 @@ router.get("/health", healthController);
 router.use("/auth", authRouter);
 
 // Protected routes (require JWT authentication)
+// Upload routes (Azure Blob Storage)
+router.use("/upload", uploadRouter);
+
+// User routes (protected with JWT authentication)
 router.use("/users", authenticate, usersRouter);
 router.use("/drivers", authenticate, driversRouter);
 router.use("/merchants", authenticate, merchantsRouter);
