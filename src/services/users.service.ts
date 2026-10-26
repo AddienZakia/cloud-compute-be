@@ -35,7 +35,6 @@ export const getMeService = async (data: JWTPayload) => {
     name: user.name,
     role: user.role,
     phoneNumber: user.phoneNumber,
-    isVerified: user.isVerified,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -108,7 +107,6 @@ export const editUserService = async (req: Request) => {
     name: updatedUser.name,
     role: updatedUser.role,
     phoneNumber: updatedUser.phoneNumber,
-    isVerified: updatedUser.isVerified,
     createdAt: updatedUser.createdAt,
     updatedAt: updatedUser.updatedAt,
   };
@@ -129,7 +127,6 @@ export const getSpecificUserService = async (userId: string) => {
       email: true,
       role: true,
       phoneNumber: true,
-      isVerified: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -165,7 +162,6 @@ export const getAllUsersService = async (
         email: true,
         role: true,
         phoneNumber: true,
-        isVerified: true,
         createdAt: true,
         updatedAt: true,
       },
