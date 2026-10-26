@@ -6,4 +6,12 @@ export const config = {
   COOLDOWN_VERIFY: Number(process.env.COOLDOWN_VERIFY) || 15, // 15 minutes -> Cooldown verify email token
   COOLDOWN_RESET: Number(process.env.COOLDOWN_RESET) || 10, // 10 minutes -> Cooldown reset password token
   COOLDOWN_JWT: Number(process.env.COOLDOWN_JWT) || 15, // 15 minutes -> Cooldown JWT Access Token
+
+  // AZURE BLOB STORAGE CONFIG
+  AZURE_STORAGE_CONNECTION_STRING:
+    process.env.AZURE_STORAGE_CONNECTION_STRING || "",
+  AZURE_STORAGE_ACCOUNT_NAME: process.env.AZURE_STORAGE_ACCOUNT_NAME || "",
+  AZURE_STORAGE_ACCOUNT_KEY: process.env.AZURE_STORAGE_ACCOUNT_KEY || "",
+  AZURE_STORAGE_CONTAINER_NAME:
+    process.env.AZURE_STORAGE_CONTAINER_NAME || "cloud-items",
 };
