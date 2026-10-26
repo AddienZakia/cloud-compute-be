@@ -1,3 +1,20 @@
+x-shared-service: &shared-service
+  image: cloud-be-app:latest
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - .env
+  environment: &shared-env
+    DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-backend_db}?schema=public
+    KAFKA_BROKER: kafka:9092
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+    kafka:
+      condition: service_started
+
 services:
   # -------------------------------------------------------------
   # Shared PostgreSQL Database
@@ -50,95 +67,47 @@ services:
   # Microservice 1: API Gateway & Order Service (HTTP Server + Kafka Producer)
   # -------------------------------------------------------------
   api-service:
+    <<: *shared-service
     container_name: cloud-api-service
-    build:
-      context: .
-      dockerfile: Dockerfile
     command: ["node", "dist/index.js"]
-    restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
-    env_file:
-      - .env
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-backend_db}?schema=public
-      KAFKA_BROKER: kafka:9092
+      <<: *shared-env
       KAFKA_RUN_EMBEDDED_WORKERS: "false"
-    depends_on:
-      db:
-        condition: service_healthy
-      kafka:
-        condition: service_started
 
   # -------------------------------------------------------------
   # Microservice 2: Driver Microservice (Kafka Consumer Worker)
+  # Shares the same image as api-service — built ONCE, reused here
   # -------------------------------------------------------------
   driver-service:
+    <<: *shared-service
     container_name: cloud-driver-service
-    build:
-      context: .
-      dockerfile: Dockerfile
     command: ["node", "dist/workers/driver.worker.js"]
-    restart: unless-stopped
     healthcheck:
       disable: true
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-backend_db}?schema=public
-      KAFKA_BROKER: kafka:9092
-    depends_on:
-      db:
-        condition: service_healthy
-      kafka:
-        condition: service_started
 
   # -------------------------------------------------------------
   # Microservice 3: Payment Microservice (Kafka Consumer Worker)
+  # Shares the same image as api-service — built ONCE, reused here
   # -------------------------------------------------------------
   payment-service:
+    <<: *shared-service
     container_name: cloud-payment-service
-    build:
-      context: .
-      dockerfile: Dockerfile
     command: ["node", "dist/workers/payment.worker.js"]
-    restart: unless-stopped
     healthcheck:
       disable: true
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-backend_db}?schema=public
-      KAFKA_BROKER: kafka:9092
-    depends_on:
-      db:
-        condition: service_healthy
-      kafka:
-        condition: service_started
 
   # -------------------------------------------------------------
   # Microservice 4: Notification Microservice (Kafka Consumer Worker)
+  # Shares the same image as api-service — built ONCE, reused here
   # -------------------------------------------------------------
   notification-service:
+    <<: *shared-service
     container_name: cloud-notification-service
-    build:
-      context: .
-      dockerfile: Dockerfile
     command: ["node", "dist/workers/notification.worker.js"]
-    restart: unless-stopped
     healthcheck:
       disable: true
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-backend_db}?schema=public
-      KAFKA_BROKER: kafka:9092
-    depends_on:
-      db:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-
 
 volumes:
   postgres_data:
