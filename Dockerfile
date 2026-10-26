@@ -42,8 +42,8 @@ COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
 # Install production dependencies only
-# HUSKY=0 mencegah lifecycle 'prepare' menjalankan husky (devDependency) saat pnpm install --prod
-RUN HUSKY=0 pnpm install --prod --frozen-lockfile
+# --ignore-scripts: skip lifecycle scripts (prepare/husky) karena husky tidak ada di prod
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # Generate Prisma Client for production runtime
 RUN pnpm run db:gen
