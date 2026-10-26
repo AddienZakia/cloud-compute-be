@@ -13,18 +13,25 @@ COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
-# Install all dependencies (including devDependencies needed for build)
+# Install all dependencies (termasuk devDependencies untuk build)
 RUN pnpm install --frozen-lockfile
 
 # Generate Prisma Client
 RUN pnpm run db:gen
 
+# Copy source code and TypeScript configuration
 COPY tsconfig.json ./
 COPY src ./src
 COPY public ./public
 
+# Compile TypeScript to JavaScript in dist/
 RUN pnpm run build
 
+# -------------------------------------------------------------
+# Stage 2: Runner
+# node_modules di-copy dari builder — tidak install ulang
+# agar menghindari masalah lifecycle scripts (husky, prisma, dll)
+# -------------------------------------------------------------
 FROM node:22-alpine AS runner
 
 WORKDIR /app
@@ -32,21 +39,15 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Install openssl for Prisma runtime
+# Install openssl untuk Prisma runtime
 RUN apk add --no-cache openssl
-RUN corepack enable && corepack prepare pnpm@10.26.0 --activate
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
-COPY prisma ./prisma/
-COPY prisma.config.ts ./
+# Copy package.json untuk metadata
+COPY package.json ./
 
-# Install production dependencies only
-# --ignore-scripts: skip lifecycle scripts (prepare/husky) karena husky tidak ada di prod
-RUN pnpm install --prod --frozen-lockfile --ignore-scripts
-
-# Generate Prisma Client for production runtime
-RUN pnpm run db:gen
+# Copy node_modules (sudah include Prisma Client yang ter-generate)
+# dari builder — tidak perlu install ulang
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy built application and static assets
 COPY --from=builder /app/dist ./dist
