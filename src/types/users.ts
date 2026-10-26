@@ -6,7 +6,6 @@ export type UsersType = {
   name: string;
   role: Role;
   phoneNumber?: string | null;
-  isVerified: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 };

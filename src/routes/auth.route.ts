@@ -1,21 +1,16 @@
 import { Router } from "express";
 import {
-  forgotPasswordController,
   loginController,
+  loginDriverController,
+  loginMerchantController,
   registerController,
-  resetPasswordController,
-  sendVerifyTokenController,
-  verifyEmailController,
 } from "../controllers/auth.controller";
 
 const route = Router();
 
-route.post("/login", loginController);
 route.post("/register", registerController);
-route.post("/verify-email", verifyEmailController);
-// route.post('/refresh-token', verifyEmailController)
-route.post("/reset-password", resetPasswordController);
-route.post("/forgot-password", forgotPasswordController);
-route.post("/send-verify-token", sendVerifyTokenController); // (Verify token registration) - check jika date now < expires time
+route.post("/login", loginController);
+route.post("/login/driver", loginDriverController);
+route.post("/login/merchant", loginMerchantController);
 
 export default route;

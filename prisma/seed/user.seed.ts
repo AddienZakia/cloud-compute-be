@@ -10,7 +10,6 @@ export async function seedUsers(prisma: PrismaClient) {
       name: "Admin User",
       password,
       role: Role.ADMIN,
-      isVerified: true,
       phoneNumber: "081234567890",
     },
     {
@@ -18,7 +17,6 @@ export async function seedUsers(prisma: PrismaClient) {
       name: "Regular User",
       password,
       role: Role.USER,
-      isVerified: true,
       phoneNumber: "081234567891",
     },
   ];
@@ -30,7 +28,6 @@ export async function seedUsers(prisma: PrismaClient) {
       name: `User ${i}`,
       password,
       role: Role.USER,
-      isVerified: true,
       phoneNumber: `08123456789${i + 1}`,
     });
   }

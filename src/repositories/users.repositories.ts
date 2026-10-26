@@ -2,6 +2,10 @@ import { Prisma } from "@prisma/client";
 import prisma from "../utils/prisma";
 
 export const UsersRepo = {
+  async findUnique<T extends Prisma.UsersFindUniqueArgs>(args: T) {
+    return await prisma.users.findUnique(args);
+  },
+
   async findOne<T extends Prisma.UsersFindFirstArgs>(args: T) {
     return await prisma.users.findFirst(args);
   },

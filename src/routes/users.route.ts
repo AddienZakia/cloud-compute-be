@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  createUserController,
   deleteUserController,
   editUserController,
   getAllUsersController,
@@ -14,7 +15,8 @@ const route = Router();
 route.get("/me", authorization("USER", "ADMIN"), getMeController);
 route.put("/me", authorization("USER", "ADMIN"), editUserController);
 
-// User administration
+// User administration (CRUD)
+route.post("/", authorization("ADMIN"), createUserController);
 route.get("/", authorization("ADMIN"), getAllUsersController);
 route.get("/:id", authorization("ADMIN"), getSpecificUserController);
 route.put("/:id", authorization("ADMIN"), editUserController);
