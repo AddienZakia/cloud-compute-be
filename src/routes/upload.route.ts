@@ -4,15 +4,18 @@ import {
   uploadMultipleController,
   uploadSingleController,
 } from "../controllers/upload.controller";
-import { uploadImageMemory } from "../middlewares/file-uploads.middleware";
+import {
+  uploadImageMemory,
+  uploadSingleImage,
+} from "../middlewares/file-uploads.middleware";
 
 const route = Router();
 
-// POST /api/v1/upload (single image upload, field name 'file' or 'image')
-route.post("/", uploadImageMemory.single("file"), uploadSingleController);
+// POST /api/v1/upload (single image upload, field name 'file', 'image', or 'imageUrl')
+route.post("/", uploadSingleImage(), uploadSingleController);
 
 // POST /api/v1/upload/image (alternative specific route for image upload)
-route.post("/image", uploadImageMemory.single("image"), uploadSingleController);
+route.post("/image", uploadSingleImage(), uploadSingleController);
 
 // POST /api/v1/upload/multiple (multiple image uploads, max 10 files)
 route.post(

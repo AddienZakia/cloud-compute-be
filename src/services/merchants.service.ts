@@ -2,7 +2,9 @@ import bcrypt from "bcrypt";
 import { Request } from "express";
 import { z } from "zod";
 import { MerchantsRepo } from "../repositories/merchants.repositories";
+import { deleteBlob, uploadFileToBlob } from "../utils/azure-storage";
 import { ApiError } from "../utils/error-handler";
+import { logger } from "../utils/logger";
 import { PaginatedResponse } from "../utils/pagination";
 import { successResponse } from "../utils/success-response";
 import {
@@ -40,8 +42,16 @@ export const createMerchantService = async (req: Request) => {
     );
   }
 
-  const { title, email, password, address, rating, status, imageUrl } =
-    validate.data;
+  const { title, email, password, address, rating, status } = validate.data;
+  let imageUrl = validate.data.imageUrl || null;
+
+  // Jika ada file gambar di-upload di request, upload ke Azure Blob Storage
+  if (req.file) {
+    const uploadResult = await uploadFileToBlob(req.file, {
+      folder: "merchants",
+    });
+    imageUrl = uploadResult.url;
+  }
 
   const exist = await MerchantsRepo.findUnique({
     where: { email },
@@ -60,7 +70,7 @@ export const createMerchantService = async (req: Request) => {
       address,
       rating: rating ?? 0,
       status: status ?? true,
-      imageUrl: imageUrl || null,
+      imageUrl,
     },
     select: merchantSelect,
   });
@@ -140,14 +150,31 @@ export const editMerchantService = async (req: Request) => {
     );
   }
 
-  const { title, email, password, address, rating, status, imageUrl } =
-    validateData.data;
+  const { title, email, password, address, rating, status } = validateData.data;
+  let imageUrl = validateData.data.imageUrl;
 
   const exist = await MerchantsRepo.findUnique({
     where: { id: merchantId },
   });
   if (!exist) {
     throw new ApiError(404, "Merchant not found");
+  }
+
+  // Jika ada file gambar baru yang di-upload
+  if (req.file) {
+    const uploadResult = await uploadFileToBlob(req.file, {
+      folder: "merchants",
+    });
+    imageUrl = uploadResult.url;
+
+    // Bersihkan file lama di Azure Blob Storage jika ada
+    if (exist.imageUrl && exist.imageUrl.includes("blob.core.windows.net")) {
+      deleteBlob(exist.imageUrl).catch((err) =>
+        logger.warn(
+          `Failed to cleanup old merchant image blob: ${err.message}`,
+        ),
+      );
+    }
   }
 
   if (email && email !== exist.email) {
@@ -188,5 +215,15 @@ export const deleteMerchantService = async (merchantId: string) => {
   }
 
   await MerchantsRepo.delete({ where: { id: merchantId } });
+
+  // Bersihkan file di Azure Blob Storage jika ada
+  if (exist.imageUrl && exist.imageUrl.includes("blob.core.windows.net")) {
+    deleteBlob(exist.imageUrl).catch((err) =>
+      logger.warn(
+        `Failed to cleanup deleted merchant image blob: ${err.message}`,
+      ),
+    );
+  }
+
   return successResponse(200, "Successfully deleted merchant");
 };

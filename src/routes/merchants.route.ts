@@ -7,10 +7,16 @@ import {
   getSpecificMerchantController,
 } from "../controllers/merchants.controller";
 import { authorization } from "../middlewares/authorize.middleware";
+import { uploadSingleImage } from "../middlewares/file-uploads.middleware";
 
 const route = Router();
 
-route.post("/", authorization("ADMIN"), createMerchantController);
+route.post(
+  "/",
+  authorization("ADMIN"),
+  uploadSingleImage("imageUrl"),
+  createMerchantController,
+);
 route.get(
   "/",
   authorization("ADMIN", "USER", "MERCHANT", "DRIVER"),
@@ -21,7 +27,12 @@ route.get(
   authorization("ADMIN", "USER", "MERCHANT", "DRIVER"),
   getSpecificMerchantController,
 );
-route.put("/:id", authorization("ADMIN", "MERCHANT"), editMerchantController);
+route.put(
+  "/:id",
+  authorization("ADMIN", "MERCHANT"),
+  uploadSingleImage("imageUrl"),
+  editMerchantController,
+);
 route.delete("/:id", authorization("ADMIN"), deleteMerchantController);
 
 export default route;

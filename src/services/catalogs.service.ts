@@ -2,7 +2,9 @@ import { Request } from "express";
 import { z } from "zod";
 import { CatalogsRepo } from "../repositories/catalogs.repositories";
 import { MerchantsRepo } from "../repositories/merchants.repositories";
+import { deleteBlob, uploadFileToBlob } from "../utils/azure-storage";
 import { ApiError } from "../utils/error-handler";
+import { logger } from "../utils/logger";
 import { PaginatedResponse } from "../utils/pagination";
 import { successResponse } from "../utils/success-response";
 import {
@@ -44,7 +46,16 @@ export const createCatalogService = async (req: Request) => {
     throw new ApiError(404, "Merchant not found");
   }
 
-  const { title, price, category, status, imageUrl } = validate.data;
+  const { title, price, category, status } = validate.data;
+  let imageUrl = validate.data.imageUrl || null;
+
+  // Jika request mengunggah file gambar langsung, upload ke Azure Blob Storage
+  if (req.file) {
+    const uploadResult = await uploadFileToBlob(req.file, {
+      folder: "catalogs",
+    });
+    imageUrl = uploadResult.url;
+  }
 
   const catalog = await CatalogsRepo.create({
     data: {
@@ -53,7 +64,7 @@ export const createCatalogService = async (req: Request) => {
       price,
       category,
       status: status ?? true,
-      imageUrl: imageUrl || null,
+      imageUrl,
     },
     include: {
       merchant: {
@@ -168,7 +179,23 @@ export const editCatalogService = async (req: Request) => {
     throw new ApiError(403, "You can only edit your own catalog items");
   }
 
-  const { title, price, category, status, imageUrl } = validateData.data;
+  const { title, price, category, status } = validateData.data;
+  let imageUrl = validateData.data.imageUrl;
+
+  // Jika ada file gambar baru yang di-upload
+  if (req.file) {
+    const uploadResult = await uploadFileToBlob(req.file, {
+      folder: "catalogs",
+    });
+    imageUrl = uploadResult.url;
+
+    // Bersihkan file lama di Azure Blob Storage jika ada
+    if (exist.imageUrl && exist.imageUrl.includes("blob.core.windows.net")) {
+      deleteBlob(exist.imageUrl).catch((err) =>
+        logger.warn(`Failed to cleanup old catalog image blob: ${err.message}`),
+      );
+    }
+  }
 
   const updatedCatalog = await CatalogsRepo.update({
     data: {
@@ -216,5 +243,15 @@ export const deleteCatalogService = async (req: Request) => {
   }
 
   await CatalogsRepo.delete({ where: { id: catalogId } });
+
+  // Bersihkan file di Azure Blob Storage jika ada
+  if (exist.imageUrl && exist.imageUrl.includes("blob.core.windows.net")) {
+    deleteBlob(exist.imageUrl).catch((err) =>
+      logger.warn(
+        `Failed to cleanup deleted catalog image blob: ${err.message}`,
+      ),
+    );
+  }
+
   return successResponse(200, "Successfully deleted catalog item");
 };

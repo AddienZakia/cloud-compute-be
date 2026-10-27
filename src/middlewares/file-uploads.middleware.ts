@@ -66,3 +66,43 @@ export const uploadImageMemory = multer({
     }
   },
 });
+
+/**
+ * Middleware fleksibel untuk upload single image ke memory.
+ * Mendukung berbagai nama field umum: 'image', 'file', 'imageUrl', atau field khusus yang dispesifikasikan.
+ * Otomatis menaruh file yang ditemukan ke `req.file`.
+ * Jika request adalah JSON biasa atau tidak ada file yang diunggah, request tetap lanjut normal.
+ */
+export const uploadSingleImage = (preferredFieldName?: string) => {
+  const fieldList = Array.from(
+    new Set([preferredFieldName || "image", "image", "file", "imageUrl"]),
+  ).map((name) => ({ name, maxCount: 1 }));
+
+  return (req: Request, res: any, next: any) => {
+    const contentType = req.headers["content-type"] || "";
+    if (!contentType.includes("multipart/form-data")) {
+      return next();
+    }
+
+    uploadImageMemory.fields(fieldList)(req, res, (err) => {
+      if (err) {
+        return next(err);
+      }
+
+      const files = req.files as
+        | { [fieldname: string]: Express.Multer.File[] }
+        | undefined;
+
+      if (files) {
+        req.file =
+          (preferredFieldName ? files[preferredFieldName]?.[0] : undefined) ||
+          files["image"]?.[0] ||
+          files["file"]?.[0] ||
+          files["imageUrl"]?.[0] ||
+          undefined;
+      }
+
+      next();
+    });
+  };
+};
