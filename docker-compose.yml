@@ -32,7 +32,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-backend_db}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-backend_db}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -108,6 +112,17 @@ services:
     command: ["node", "dist/workers/notification.worker.js"]
     healthcheck:
       disable: true
+
+kafka-ui:
+  image: provectuslabs/kafka-ui:latest
+  container_name: cloud-kafka-ui
+  ports:
+    - "8080:8080"
+  environment:
+    KAFKA_CLUSTERS_0_NAME: local
+    KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+  depends_on:
+    - kafka
 
 volumes:
   postgres_data:
