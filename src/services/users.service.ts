@@ -3,6 +3,8 @@ import { Request } from "express";
 import { z } from "zod";
 import { JWTPayload } from "../constants/jwt";
 import { GetMeResponseDTO } from "../dto/response/users/get-me.response.dto";
+import { DriversRepo } from "../repositories/drivers.repositories";
+import { MerchantsRepo } from "../repositories/merchants.repositories";
 import { UsersRepo } from "../repositories/users.repositories";
 import { UsersType } from "../types/users";
 import { ApiError } from "../utils/error-handler";
@@ -20,6 +22,49 @@ import {
 export const getMeService = async (data: JWTPayload) => {
   if (!data) {
     throw new ApiError(401, "You're not allowed");
+  }
+
+  if (data.role === "MERCHANT") {
+    const merchant = await MerchantsRepo.findUnique({
+      where: { id: data.id },
+    });
+    if (!merchant) {
+      throw new ApiError(404, "Merchant not found");
+    }
+    const dataResponse = {
+      id: merchant.id,
+      email: merchant.email,
+      name: merchant.title,
+      role: "MERCHANT",
+      address: merchant.address,
+      rating: merchant.rating,
+      status: merchant.status,
+      imageUrl: merchant.imageUrl,
+      createdAt: merchant.createdAt,
+      updatedAt: merchant.updatedAt,
+    };
+    const response = successResponse(200, "Success get merchant profile", dataResponse);
+    return { data: dataResponse, response };
+  }
+
+  if (data.role === "DRIVER") {
+    const driver = await DriversRepo.findUnique({
+      where: { id: data.id },
+    });
+    if (!driver) {
+      throw new ApiError(404, "Driver not found");
+    }
+    const dataResponse = {
+      id: driver.id,
+      email: driver.email,
+      name: driver.name,
+      role: "DRIVER",
+      isAvailable: driver.isAvailable,
+      createdAt: driver.createdAt,
+      updatedAt: driver.updatedAt,
+    };
+    const response = successResponse(200, "Success get driver profile", dataResponse);
+    return { data: dataResponse, response };
   }
 
   const user = await UsersRepo.findUnique({

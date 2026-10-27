@@ -7,7 +7,7 @@ export const paginationSchema = z
   .object({
     page: z.coerce.number().min(1).default(1),
     take: z.coerce.number().min(1).default(10),
-    sort: z.enum(sortEnum),
+    sort: z.enum(sortEnum).default("desc"),
     sort_by: z
       .string()
       .optional()

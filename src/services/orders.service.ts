@@ -230,6 +230,10 @@ export const getAllOrdersService = async (
   } else if (req.user?.role === "MERCHANT") {
     where.merchantId = req.user.id;
   }
+  // Optional status filter
+  if (req.query.status && typeof req.query.status === "string") {
+    where.status = req.query.status;
+  }
   // ADMIN can see all orders
 
   const { items, total_data } = await OrdersRepo.paginate(

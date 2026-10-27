@@ -25,8 +25,8 @@ router.use("/upload", uploadRouter);
 // User routes (protected with JWT authentication)
 router.use("/users", authenticate, usersRouter);
 router.use("/drivers", authenticate, driversRouter);
-router.use("/merchants", authenticate, merchantsRouter);
-router.use("/catalogs", authenticate, catalogsRouter);
+router.use("/merchants", merchantsRouter);
+router.use("/catalogs", catalogsRouter);
 router.use("/orders", authenticate, ordersRouter);
 router.use("/transactions", authenticate, transactionsRouter);
 

@@ -4,6 +4,8 @@ A production-ready, scalable, and modular backend starter template built with **
 
 Designed following Clean Architecture principles with a layered separation of concerns (Routes → Controllers → Services → Repositories → Database).
 
+> 📚 **API Documentation:** Untuk dokumentasi endpoint lengkap (Auth, Users, Merchants, Drivers, Catalogs, Orders, Transactions), silakan cek [API Documentation](docs/API_DOCUMENTATION.md).
+
 ---
 
 ## 🌟 Features

@@ -4,6 +4,7 @@ import {
   deleteDriverService,
   editDriverService,
   getAllDriversService,
+  getDriverStatsService,
   getSpecificDriverService,
 } from "../services/drivers.service";
 import { getIdParamsSchema } from "../validations/common.schema";
@@ -71,6 +72,19 @@ export const deleteDriverController = async (
   try {
     const params = getIdParamsSchema.parse(req.params);
     const response = await deleteDriverService(params.id);
+    return res.status(200).json(response);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getDriverStatsController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const response = await getDriverStatsService(req);
     return res.status(200).json(response);
   } catch (err) {
     next(err);

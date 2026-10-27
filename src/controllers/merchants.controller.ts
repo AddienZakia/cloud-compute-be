@@ -4,6 +4,7 @@ import {
   deleteMerchantService,
   editMerchantService,
   getAllMerchantsService,
+  getMerchantStatsService,
   getSpecificMerchantService,
 } from "../services/merchants.service";
 import { getIdParamsSchema } from "../validations/common.schema";
@@ -71,6 +72,19 @@ export const deleteMerchantController = async (
   try {
     const params = getIdParamsSchema.parse(req.params);
     const response = await deleteMerchantService(params.id);
+    return res.status(200).json(response);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMerchantStatsController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const response = await getMerchantStatsService(req);
     return res.status(200).json(response);
   } catch (err) {
     next(err);
