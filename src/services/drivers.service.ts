@@ -206,7 +206,10 @@ export const getDriverStatsService = async (req: Request) => {
   const days = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
   const dailyEarnings = days.map((day, idx) => ({
     day,
-    total: Math.max(0, Math.floor(totalEarnings / 7) + (idx % 2 === 0 ? 14000 : 0)),
+    total: Math.max(
+      0,
+      Math.floor(totalEarnings / 7) + (idx % 2 === 0 ? 14000 : 0),
+    ),
   }));
 
   return successResponse(200, "Success retrieve driver stats", {

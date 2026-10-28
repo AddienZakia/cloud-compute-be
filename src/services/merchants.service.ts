@@ -246,14 +246,15 @@ export const getMerchantStatsService = async (req: Request) => {
   })) as Array<any>;
 
   const ordersToday = orders.length;
-  const waitingConfirmation = orders.filter((o) => o.status === "waiting").length;
+  const waitingConfirmation = orders.filter(
+    (o) => o.status === "waiting",
+  ).length;
   const preparing = orders.filter((o) => o.status === "picked").length;
   const completed = orders.filter((o) => o.status === "delivered").length;
 
   const grossRevenue = orders
     .filter(
-      (o) =>
-        o.status === "delivered" || o.transaction?.status === "success",
+      (o) => o.status === "delivered" || o.transaction?.status === "success",
     )
     .reduce((sum, o) => sum + (o.transaction?.grossAmount || 0), 0);
 

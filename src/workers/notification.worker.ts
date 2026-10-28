@@ -2,12 +2,16 @@ import "dotenv/config";
 import {
   handleDriverAssignedForNotification,
   handleOrderCreatedForNotification,
+  handleOrderStatusUpdatedForNotification,
+  handlePaymentProcessedForNotification,
 } from "../kafka/consumers/notification.consumer";
 import { createKafkaConsumer } from "../kafka/kafka.client";
 import {
   DriverAssignedEvent,
   KAFKA_TOPICS,
   OrderCreatedEvent,
+  OrderStatusUpdatedEvent,
+  PaymentProcessedEvent,
 } from "../kafka/topics";
 import { logger } from "../utils/logger";
 
@@ -26,12 +30,20 @@ export const runNotificationWorker = async () => {
       fromBeginning: false,
     });
     await consumer.subscribe({
+      topic: KAFKA_TOPICS.PAYMENT_PROCESSED,
+      fromBeginning: false,
+    });
+    await consumer.subscribe({
       topic: KAFKA_TOPICS.DRIVER_ASSIGNED,
+      fromBeginning: false,
+    });
+    await consumer.subscribe({
+      topic: KAFKA_TOPICS.ORDER_STATUS_UPDATED,
       fromBeginning: false,
     });
 
     logger.info(
-      `[Notification Worker] Subscribed to topics: ${KAFKA_TOPICS.ORDER_CREATED}, ${KAFKA_TOPICS.DRIVER_ASSIGNED}`,
+      `[Notification Worker] Subscribed to topics: ${KAFKA_TOPICS.ORDER_CREATED}, ${KAFKA_TOPICS.PAYMENT_PROCESSED}, ${KAFKA_TOPICS.DRIVER_ASSIGNED}, ${KAFKA_TOPICS.ORDER_STATUS_UPDATED}`,
     );
     console.log(
       `🔔 [Notification Microservice] Ready and listening for events...`,
@@ -49,9 +61,17 @@ export const runNotificationWorker = async () => {
             await handleOrderCreatedForNotification(
               parsed as OrderCreatedEvent,
             );
+          } else if (topic === KAFKA_TOPICS.PAYMENT_PROCESSED) {
+            await handlePaymentProcessedForNotification(
+              parsed as PaymentProcessedEvent,
+            );
           } else if (topic === KAFKA_TOPICS.DRIVER_ASSIGNED) {
             await handleDriverAssignedForNotification(
               parsed as DriverAssignedEvent,
+            );
+          } else if (topic === KAFKA_TOPICS.ORDER_STATUS_UPDATED) {
+            await handleOrderStatusUpdatedForNotification(
+              parsed as OrderStatusUpdatedEvent,
             );
           }
         } catch (err: any) {

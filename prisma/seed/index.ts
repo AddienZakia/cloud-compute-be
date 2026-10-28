@@ -20,7 +20,9 @@ async function main() {
 
 main()
   .then(() => {
-    console.log("🚀 Database seeded completely with all test accounts (password: testing123)!");
+    console.log(
+      "🚀 Database seeded completely with all test accounts (password: testing123)!",
+    );
     process.exit(0);
   })
   .catch((e) => {

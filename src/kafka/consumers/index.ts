@@ -6,11 +6,15 @@ import {
   DriverAssignedEvent,
   KAFKA_TOPICS,
   OrderCreatedEvent,
+  OrderStatusUpdatedEvent,
+  PaymentProcessedEvent,
 } from "../topics";
 import { handleOrderCreatedForDriver } from "./driver.consumer";
 import {
   handleDriverAssignedForNotification,
   handleOrderCreatedForNotification,
+  handleOrderStatusUpdatedForNotification,
+  handlePaymentProcessedForNotification,
 } from "./notification.consumer";
 import { handleOrderCreatedForPayment } from "./payment.consumer";
 
@@ -38,7 +42,15 @@ export const startAllConsumers = async (): Promise<void> => {
       fromBeginning: false,
     });
     await consumer.subscribe({
+      topic: KAFKA_TOPICS.PAYMENT_PROCESSED,
+      fromBeginning: false,
+    });
+    await consumer.subscribe({
       topic: KAFKA_TOPICS.DRIVER_ASSIGNED,
+      fromBeginning: false,
+    });
+    await consumer.subscribe({
+      topic: KAFKA_TOPICS.ORDER_STATUS_UPDATED,
       fromBeginning: false,
     });
 
@@ -62,9 +74,15 @@ export const startAllConsumers = async (): Promise<void> => {
               handleOrderCreatedForDriver(event),
               handleOrderCreatedForNotification(event),
             ]);
+          } else if (topic === KAFKA_TOPICS.PAYMENT_PROCESSED) {
+            const event = parsedData as PaymentProcessedEvent;
+            await handlePaymentProcessedForNotification(event);
           } else if (topic === KAFKA_TOPICS.DRIVER_ASSIGNED) {
             const event = parsedData as DriverAssignedEvent;
             await handleDriverAssignedForNotification(event);
+          } else if (topic === KAFKA_TOPICS.ORDER_STATUS_UPDATED) {
+            const event = parsedData as OrderStatusUpdatedEvent;
+            await handleOrderStatusUpdatedForNotification(event);
           }
         } catch (msgErr: any) {
           logger.error(

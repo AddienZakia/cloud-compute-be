@@ -523,7 +523,9 @@ async function seedSampleOrders(
     const status = orderStatuses[i];
 
     // Find catalog of this merchant
-    const merchantCatalogs = catalogs.filter((c) => c.merchantId === merchant.id);
+    const merchantCatalogs = catalogs.filter(
+      (c) => c.merchantId === merchant.id,
+    );
     const chosenCatalog = merchantCatalogs[0] || catalogs[0];
 
     const existingOrder = await prisma.order.findFirst({

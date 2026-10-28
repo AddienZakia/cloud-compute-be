@@ -1,7 +1,11 @@
 import { Request } from "express";
 import { z } from "zod";
 import { publishEvent } from "../kafka/kafka.client";
-import { KAFKA_TOPICS, OrderCreatedEvent } from "../kafka/topics";
+import {
+  KAFKA_TOPICS,
+  OrderCreatedEvent,
+  OrderStatusUpdatedEvent,
+} from "../kafka/topics";
 import { CatalogsRepo } from "../repositories/catalogs.repositories";
 import { DriversRepo } from "../repositories/drivers.repositories";
 import { MerchantsRepo } from "../repositories/merchants.repositories";
@@ -331,6 +335,15 @@ export const updateOrderStatusService = async (req: Request) => {
 
     return updated;
   });
+
+  // Publish event 'order-status-updated' ke Kafka
+  const statusEvent: OrderStatusUpdatedEvent = {
+    orderId,
+    status: updatedOrder.status,
+    driverId: updatedOrder.driverId,
+    updatedAt: updatedOrder.updatedAt.toISOString(),
+  };
+  await publishEvent(KAFKA_TOPICS.ORDER_STATUS_UPDATED, statusEvent, orderId);
 
   return successResponse(
     200,

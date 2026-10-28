@@ -43,7 +43,11 @@ export const getMeService = async (data: JWTPayload) => {
       createdAt: merchant.createdAt,
       updatedAt: merchant.updatedAt,
     };
-    const response = successResponse(200, "Success get merchant profile", dataResponse);
+    const response = successResponse(
+      200,
+      "Success get merchant profile",
+      dataResponse,
+    );
     return { data: dataResponse, response };
   }
 
@@ -63,7 +67,11 @@ export const getMeService = async (data: JWTPayload) => {
       createdAt: driver.createdAt,
       updatedAt: driver.updatedAt,
     };
-    const response = successResponse(200, "Success get driver profile", dataResponse);
+    const response = successResponse(
+      200,
+      "Success get driver profile",
+      dataResponse,
+    );
     return { data: dataResponse, response };
   }
 

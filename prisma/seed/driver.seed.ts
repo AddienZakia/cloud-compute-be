@@ -67,5 +67,7 @@ export async function seedDrivers(prisma: PrismaClient) {
     });
   }
 
-  console.log(`✅ Seeded ${driversData.length} drivers with password: testing123`);
+  console.log(
+    `✅ Seeded ${driversData.length} drivers with password: testing123`,
+  );
 }
